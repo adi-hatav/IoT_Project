@@ -6,14 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
 
 
-def build_classifier(df, window_size):
-    df = df.dropna()
-    X = df.drop('Activity', axis=1)  # Features
-    y = df['Activity']  # Labels
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    X_train = X_train.dropna()
-    X_test = X_test.dropna()
-    # Select and train a classifier
+def build_classifier(X_train,y_train,X_test,y_test, window_size):
     classifier = RandomForestClassifier()
     classifier.fit(X_train, y_train)
 
@@ -23,10 +16,10 @@ def build_classifier(df, window_size):
     print(f"Accuracy: {accuracy} window size {window_size}")
 
 
-def activity_type_detector(csv_files, column_names, window_num):
+def transform_data(files, window_num):
     # Create an empty list to store the all DataFrames
     combined_df = pd.DataFrame(columns=column_names)
-    for file in csv_files:
+    for file in files:
         # Read the CSV file into a DataFrames
         file_details = pd.read_csv(file, nrows=3)
         activity_type = file_details.iloc[1, 1]
@@ -42,7 +35,18 @@ def activity_type_detector(csv_files, column_names, window_num):
         df['Activity'] = activity_type
         # Concatenate all DataFrames into a single DataFrame
         combined_df = pd.concat([combined_df, df])
-    build_classifier(combined_df, window_num)
+    combined_df1 = combined_df.dropna()
+    X = combined_df1.drop('Activity', axis=1)  # Features
+    y = combined_df1['Activity']  # Labels
+    return X,y
+
+
+def activity_type_detector(csv_files, column_names, window_num):
+    # split the files to train and test
+    train_set, test_set = train_test_split(csv_files, test_size=0.2, random_state=15)
+    X_train, y_train = transform_data(train_set, window_num)
+    X_test, y_test = transform_data(test_set, window_num)
+    build_classifier(X_train,y_train,X_test,y_test, window_num)
 
 
 def extract_params(file):
@@ -124,5 +128,5 @@ if __name__ == '__main__':
     # get a list of all CSV file paths in the directory
     csv_files = glob.glob(directory_path + '*.csv')
     column_names = ['Time [sec]', 'ACC X', 'ACC Y', 'ACC Z']
-    activity_type_detector(csv_files, column_names, 30)
+    activity_type_detector(csv_files, column_names, 0.8)
     count_steps(csv_files, 0.82, 0.07)
